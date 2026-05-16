@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Undertale Attack Workspace Creator v5</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0c0c0f; color: #E2E8F0;
+            height: 100vh; width: 100vw; overflow: hidden;
+            padding: 15px; display: flex; flex-direction: column;
+        }
+        header {
+            background: linear-gradient(135deg, #1e1e2f 0%, #11111b 100%);
+            padding: 10px 20px; border-radius: 6px; border: 1px solid #2d2d44;
+            margin-bottom: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); flex-shrink: 0;
+        }
+        h1 { font-size: 18px; color: #FFF; }
+        p.subtitle { color: #94a3b8; font-size: 11px; }
+        .grid-container {
+            display: grid; grid-template-columns: 340px minmax(0, 1fr);
+            gap: 15px; flex-grow: 1; min-height: 0; width: 100%;
+        }
+        .panel {
+            background: #181824; border-radius: 8px; padding: 15px;
+            border: 1px solid #2b2b3d; box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            display: flex; flex-direction: column; min-height: 0; width: 100%;
+        }
+        .scrollable-settings { overflow-y: auto; flex-grow: 1; padding-right: 5px; }
+        label { display: block; margin: 8px 0 4px; font-size: 11px; color: #a5a5c1; font-weight: 600; }
+        input, select, button { width: 100%; padding: 8px; background: #222235; border: 1px solid #3d3d5c; color: #FFF; border-radius: 5px; font-size: 12px; }
+        input:focus, select:focus { border-color: #ff3333; outline: none; }
+        button { background: #ff3333; border: none; font-weight: bold; cursor: pointer; margin-top: 8px; text-transform: uppercase; transition: background 0.2s; flex-shrink: 0; }
+        button:hover { background: #dd2222; }
+        .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 5px; }
+        .preset-card { background: #252538; padding: 6px; border-radius: 4px; border-left: 3px solid #3b82f6; cursor: pointer; font-size: 11px; }
+        .preset-card:hover { background: #2f2f47; border-left-color: #10b981; }
+        .workspace-layout { display: flex; flex-direction: column; height: 100%; min-height: 0; width: 100%; }
+        .arena-centering-viewport {
+            display: flex; justify-content: center; align-items: center; width: 100%;
+            background: #0f0f15; border-radius: 6px; border: 1px dashed #3d3d5c;
+            padding: 10px 0; flex-grow: 1; min-height: 220px; position: relative;
+        }
+        canvas { background: #000; border: 4px solid #FFFFFF; cursor: crosshair; }
+        .timeline-scroll-wrapper {
+            width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden;
+            border: 2px solid #2d2d44; border-radius: 6px; background: #09090d; margin-top: 10px; height: 85px; flex-shrink: 0;
+        }
+        .timeline-track { position: relative; height: 100%; width: 2000px; }
+        .timeline-object { position: absolute; color: #000; font-size: 9px; font-weight: bold; padding: 3px 6px; border-radius: 3px; top: 25px; cursor: pointer; white-space: nowrap; }
+        .time-marker { position: absolute; border-left: 1px dashed #3d3d5c; height: 100%; top: 0; color: #71717a; font-size: 9px; padding-left: 3px; pointer-events: none; }
+        .preview-output-box { margin-top: 10px; background: #09090d; padding: 10px; border-radius: 6px; border: 1px solid #2d2d44; height: 90px; overflow-y: auto; flex-shrink: 0; width: 100%; }
+        pre { color: #34d399; font-size: 11px; font-family: monospace; }
+        .mode-badge { background: #ff9900; color: #000; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+        .hp-bar-container { width: 300px; background: #555; height: 12px; border: 1px solid #FFF; margin-top: 6px; border-radius: 3px; overflow: hidden; display: none;}
+        .hp-bar-fill { height: 100%; background: #FFCC00; width: 100%; transition: width 0.1s; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Undertale Attack Workspace Creator v5</h1>
+    <p class="subtitle">Locked completely window-side. Plots interpolated path frames flawlessly.</p>
+</header>
+
+<div class="grid-container">
+    <div class="panel">
+        <div class="scrollable-settings">
+            <h2>Global Parameters</h2>
+            <label>Total Duration (ms)</label>
+            <input type="number" id="globalDuration" value="5000">
+            <label>Start Soul Coordinate (X, Y)</label>
+            <div style="display:flex; gap:6px;">
+                <input type="number" id="soulX" value="142">
+                <input type="number" id="soulY" value="92">
+            </div>
+            <hr style="border-color:#2b2b3d; margin:10px 0;">
+            <h2>Projectile Matrix</h2>
+            <label>Behavior Class Module Type</label>
+            <select id="bulletType">
+                <option value="bone">Standard White Bone</option>
+                <option value="spear">Cyan Tracking Spear</option>
+                <option value="blue">Blue Movement Checker</option>
+                <option value="orange">Orange Stillness Checker</option>
+                <option value="green">Green Restoration Support</option>
+                <option value="purple">Purple Shadow Star Shard</option>
+            </select>
+            <label>Trajectory Pathing Algorithm</label>
+            <select id="bulletMovement" onchange="toggleMovementEngine(this.value)">
+                <option value="linear">Straight Left-to-Right Horizontal</option>
+                <option value="rightLeft">Reverse Right-to-Left Passing</option>
+                <option value="topDown">Vertical Downwards Drop Rainfall</option>
+                <option value="bottomUp">Vertical Upwards Rise Eruption</option>
+                <option value="sine">Mathematical Harmonic Sine Wave</option>
+                <option value="custom">[ENGINE] Mouse Node-Plotting Custom Track</option>
+            </select>
+            <label>Custom Vector Path Easing Map</label>
+            <select id="pathEasing">
+                <option value="linear">Linear Standard Split Splines</option>
+                <option value="smooth">Hermite High-Precision Curve Easing</option>
+            </select>
+            <div style="display:flex; gap:6px;">
+                <div><label>Clock (ms)</label><input type="number" id="spawnTime" value="500"></div>
+                <div><label>Speed Scale</label><input type="number" id="bulletSpeed" value="3" step="0.5"></div>
+            </div>
+            <div style="display:flex; gap:6px;">
+                <div><label>Base Damage</label><input type="number" id="bulletDamage" value="10"></div>
+                <div><label>Hitbox (px)</label><input type="number" id="bulletHitbox" value="16"></div>
+            </div>
+            <button id="addBtn" onclick="addObjectToTimeline()">Inject Object Sequence</button>
+            <hr style="border-color:#2b2b3d; margin:10px 0;">
+            <h2>Templates & Presets</h2>
+            <div class="preset-grid">
+                <div class="preset-card" onclick="loadPatternPreset('boneWall')"><strong>Bone Columns</strong></div>
+                <div class="preset-card" onclick="loadPatternPreset('spearStorm')"><strong>Spear Rushes</strong></div>
+                <div class="preset-card" onclick="loadPatternPreset('blueOrange')"><strong>Color Trap</strong></div>
+                <div class="preset-card" onclick="loadPatternPreset('sineDance')"><strong>Sine Ballet</strong></div>
+            </div>
+        </div>
+        <button style="background:#10b981; color:#000; margin-top:10px;" onclick="exportAttackFile()">Export File (.att)</button>
+    </div>
+
+    <div class="panel">
+        <div class="workspace-layout">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-shrink:0;">
+                <h3>Live Arena Sandbox View</h3>
+                <div id="simClock" style="font-family:monospace; color:#FFCC00; font-size:12px; font-weight:bold;">Time: 0ms</div>
+                <div id="customEngineBadge" class="mode-badge" style="display:none;">[ENGINE ACTIVE] Click nodes inside frame. Press ENTER to push template.</div>
+            </div>
+            
+            <div class="arena-centering-viewport">
+                <canvas id="arenaCanvas" width="300" height="200"></canvas>
+            </div>
+            
+            <div style="display:flex; flex-direction:column; align-items:center; margin:6px 0; flex-shrink:0;">
+                <div style="display:flex; gap:10px;">
+                    <button style="background:#2563eb; width:130px; margin:0; padding:6px;" onclick="startSimulation()">▶ Playback Test</button>
+                    <button style="background:#4b5563; width:130px; margin:0; padding:6px;" onclick="stopSimulation()">▉ Clear View</button>
+                </div>
+                <div class="hp-bar-container" id="hpContainer"><div class="hp-bar-fill" id="hpFill"></div></div>
+                <div id="hpText" style="font-size:11px; margin-top:2px; font-family:monospace; display:none;">HP: 100 / 100</div>
+            </div>
+
+            <h3 style="font-size:13px; flex-shrink:0;">Track Sequencer Timeline (Click elements to wipe them)</h3>
+            <div class="timeline-scroll-wrapper"><div class="timeline-track" id="trackCanvas"></div></div>
+            <div class="preview-output-box"><pre id="jsonPreview">{ ... }</pre></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let activeTimelineObjects = [];
+    let simAnimationId = null, simStartTime = null, simulatedBullets = [];
+    let customEngineActive = false, recordedKeyframes = [];
+    
+    // Live sandbox user drive simulation states
+    let userSoul = { x: 142, y: 92, hp: 100, maxHp: 100 };
+    let keysPressed = {};
+
+    const canvas = document.getElementById('arenaCanvas'), ctx = canvas.getContext('2d');
+    const colorTable = { bone: '#FFFFFF', spear: '#00FFFF', blue: '#0066FF', orange: '#FF9900', green: '#00FF33', purple: '#CC33FF' };
+
+    window.onload = function() {
+        setupCanvasListeners();
+        setupKeyboardDrivers();
+        stopSimulation();
+        renderTrackGrid();
+    };
+
+    function setupKeyboardDrivers() {
+        window.addEventListener('keydown', e => { 
+            if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) e.preventDefault();
+            keysPressed[e.key] = true; 
+        });
+        window.addEventListener('keyup', e => { keysPressed[e.key] = false; });
+    }
+
+    function toggleMovementEngine(val) {
+        const badge = document.getElementById('customEngineBadge'), addBtn = document.getElementById('addBtn');
+        if (val === 'custom') {
+            customEngineActive = true; recordedKeyframes = [];
+            badge.style.display = 'block'; addBtn.disabled = true; addBtn.style.opacity = "0.4";
+            stopSimulation();
+        } else {
+            customEngineActive = false; badge.style.display = 'none'; addBtn.disabled = false; addBtn.style.opacity = "1.0";
+            addBtn.innerText = "Inject Object Sequence";
+        }
+    }
+
+    function setupCanvasListeners() {
+        canvas.addEventListener('mousemove', e => { if (customEngineActive) renderCustomCrosshairs(e); });
+        canvas.addEventListener('click', e => {
+            if (!customEngineActive) return;
+            const rect = canvas.getBoundingClientRect();
+            recordedKeyframes.push({ x: Math.round(e.clientX - rect.left), y: Math.round(e.clientY - rect.top) });
+            renderCustomCrosshairs(e);
+        });
+        window.addEventListener('keydown', e => {
+            if (customEngineActive && e.key === 'Enter') {
+                if (recordedKeyframes.length < 2) { alert("Plot at least 2 keyframes to calculate smooth trajectories!"); return; }
+                finalizeCustomObjectInjection();
+            }
+        });
+    }
+
+    function renderCustomCrosshairs(e) {
+        const rect = canvas.getBoundingClientRect(), mx = e.clientX - rect.left, my = e.clientY - rect.top;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.strokeStyle = 'rgba(255, 51, 51, 0.35)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(mx, 0); ctx.lineTo(mx, 200); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, my); ctx.lineTo(300, my); ctx.stroke();
+
+        if (recordedKeyframes.length > 0) {
+            ctx.strokeStyle = '#00FF33'; ctx.lineWidth = 2; ctx.beginPath();
+            ctx.moveTo(recordedKeyframes[0].x, recordedKeyframes[0].y);
+            for(let i=1; i<recordedKeyframes.length; i++) ctx.lineTo(recordedKeyframes[i].x, recordedKeyframes[i].y);
+            ctx.stroke();
+            ctx.fillStyle = '#FF9900';
+            recordedKeyframes.forEach(pt => ctx.fillRect(pt.x - 3, pt.y - 3, 6, 6));
+        }
+    }
+
+    function finalizeCustomObjectInjection() {
+        activeTimelineObjects.push({
+            time: parseInt(document.getElementById('spawnTime').value) || 0,
+            type: document.getElementById('bulletType').value,
+            movement: 'custom', speed: parseFloat(document.getElementById('bulletSpeed').value) || 3,
+            easing: document.getElementById('pathEasing').value,
+            damage: parseInt(document.getElementById('bulletDamage').value) || 10,
+            hitbox: parseInt(document.getElementById('bulletHitbox').value) || 16,
+            keyframes: [...recordedKeyframes]
+        });
+        activeTimelineObjects.sort((a, b) => a.time - b.time);
+        document.getElementById('bulletMovement').value = 'linear';
+        toggleMovementEngine('linear'); renderTrackGrid(); updatePayloadSourcePreview();
+    }
+
+    function renderTrackGrid() {
+        const track = document.getElementById('trackCanvas'); track.innerHTML = '';
+        const duration = parseInt(document.getElementById('globalDuration').value) || 5000;
+        track.style.width = (duration * 0.35) + 120 + 'px';
+        
+        for (let t = 0; t <= duration; t += 500) {
+            let m = document.createElement('div'); m.className = 'time-marker'; m.style.left = (t * 0.35) + 'px';
+            m.innerText = t + 'ms'; track.appendChild(m);
+        }
+        activeTimelineObjects.forEach((obj, idx) => {
+            let n = document.createElement('div'); n.className = 'timeline-object';
+            n.style.backgroundColor = colorTable[obj.type] || '#FFF'; n.style.left = (obj.time * 0.35) + 'px';
+            n.innerText = `[${obj.type.toUpperCase()}] (${obj.time}ms)`;
+            n.onclick = () => { activeTimelineObjects.splice(idx, 1); renderTrackGrid(); updatePayloadSourcePreview(); };
+            track.appendChild(n);
+        });
+    }
+
+    function addObjectToTimeline() {
+        if (customEngineActive) return;
+        activeTimelineObjects.push({
+            time: parseInt(document.getElementById('spawnTime').value) || 0,
+            type: document.getElementById('bulletType').value,
+            movement: document.getElementById('bulletMovement').value,
+            speed: parseFloat(document.getElementById('bulletSpeed').value) || 3,
+            easing: document.getElementById('pathEasing').value,
+            damage: parseInt(document.getElementById('bulletDamage').value) || 10,
+            hitbox: parseInt(document.getElementById('bulletHitbox').value) || 16,
+            customY: Math.random() * 120 + 30, customX: Math.random() * 200 + 40
+        });
+        activeTimelineObjects.sort((a, b) => a.time - b.time);
+        renderTrackGrid(); updatePayloadSourcePreview();
+    }
+
+    function loadPatternPreset(preset) {
+        activeTimelineObjects = []; toggleMovementEngine('linear');
+        if (preset === 'boneWall') {
+            for(let i=1; i<=6; i++) activeTimelineObjects.push({ time: i*600, type: 'bone', movement: 'linear', speed: 3.5, damage: 10, hitbox: 16, customY: 30 + (i%2*80) });
+        } else if (preset === 'spearStorm') {
+            for(let i=1; i<=10; i++) activeTimelineObjects.push({ time: i*300, type: 'spear', movement: 'rightLeft', speed: 4.5, damage: 12, hitbox: 14, customY: 20 + (i*25)%140 });
+        } else if (preset === 'blueOrange') {
+            for(let i=1; i<=6; i++) activeTimelineObjects.push({ time: i*500, type: (i%2===0)?'blue':'orange', movement: 'linear', speed: 4, damage: 15, hitbox: 18, customY: 40 + (i*20)%120 });
+        } else if (preset === 'sineDance') {
+            for(let i=1; i<=8; i++) activeTimelineObjects.push({ time: i*400, type: 'purple', movement: 'sine', speed: 3, damage: 10, hitbox: 16, customY: 80 });
+        }
+        renderTrackGrid(); updatePayloadSourcePreview();
+    }
+
+    function updatePayloadSourcePreview() {
+        document.getElementById('jsonPreview').innerText = JSON.stringify({
+            duration: parseInt(document.getElementById('globalDuration').value)||5000,
+            startSoul: { x: parseInt(document.getElementById('soulX').value)||142, y: parseInt(document.getElementById('soulY').value)||92 },
+            timeline: activeTimelineObjects
+        }, null, 4);
+    }
+
+    function startSimulation() {
+        if (customEngineActive) return;
+        stopSimulation();
+        userSoul.x = parseInt(document.getElementById('soulX').value) || 142;
+        userSoul.y = parseInt(document.getElementById('soulY').value) || 92;
+        userSoul.hp = 100;
+        
+        document.getElementById('hpContainer').style.display = 'block';
+        document.getElementById('hpText').style.display = 'block';
+
+        simulatedBullets = activeTimelineObjects.map(b => ({ ...b, spawned: false, x: -50, y: -50, born: 0, originY: 0 }));
+        simStartTime = performance.now();
+        simLoop();
+    }
+
+    function stopSimulation() {
+        cancelAnimationFrame(simAnimationId);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#FF0000'; ctx.fillRect(parseInt(document.getElementById('soulX').value)||142, parseInt(document.getElementById('soulY').value)||92, 16, 16);
+        document.getElementById('simClock').innerText = "Time: 0ms";
+        document.getElementById('hpContainer').style.display = 'none';
+        document.getElementById('hpText').style.display = 'none';
+    }
+
+    function simLoop() {
+        const totalDuration = parseInt(document.getElementById('globalDuration').value) || 5000;
+        let elapsed = performance.now() - simStartTime;
+
+        if (elapsed >= totalDuration || userSoul.hp <= 0) {
+            stopSimulation(); return;
+        }
+
+        document.getElementById('simClock').innerText = `Time: ${Math.round(elapsed)}ms / ${totalDuration}ms`;
+        
+        // Process user dynamic drive keyboard calculations inside simulation frame loop
+        let isMoving = false;
+        if (keysPressed['ArrowLeft'] || keysPressed['a'])  { userSoul.x -= 3.5; isMoving = true; }
+        if (keysPressed['ArrowRight'] || keysPressed['d']) { userSoul.x += 3.5; isMoving = true; }
+        if (keysPressed['ArrowUp'] || keysPressed['w'])    { userSoul.y -= 3.5; isMoving = true; }
+        if (keysPressed['ArrowDown'] || keysPressed['s'])  { userSoul.y += 3.5; isMoving = true; }
+        
+        userSoul.x = Math.max(0, Math.min(300 - 16, userSoul.x));
+        userSoul.y = Math.max(0, Math.min(200 - 16, userSoul.y));
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#FF0000'; ctx.fillRect(userSoul.x, userSoul.y, 16, 16);
+
+        simulatedBullets.forEach(b => {
+            if (!b.spawned && elapsed >= b.time) {
+                b.spawned = true; b.born = elapsed;
+                if (b.movement === 'topDown') { b.x = b.customX; b.y = -16; }
+                else if (b.movement === 'bottomUp') { b.x = b.customX; b.y = 200; }
+                else if (b.movement === 'rightLeft') { b.x = 300; b.y = b.customY; }
+                else if (b.movement === 'custom') { b.x = b.keyframes[0].x; b.y = b.keyframes[0].y; }
+                else { b.x = -16; b.y = b.customY; }
+                b.originY = b.y;
+            }
+
+            if (b.spawned) {
+                let age = elapsed - b.born;
+                if (b.movement === 'custom' && b.keyframes) {
+                    let totalSteps = b.keyframes.length - 1;
+                    let progress = Math.min(age / (totalSteps * 100), 1);
+                    if (b.easing === 'smooth') progress = progress * progress * (3 - 2 * progress); // Hermite cubic equation logic mappings
+                    
+                    let idx = progress * totalSteps;
+                    let base = Math.floor(idx), next = Math.ceil(idx), ratio = idx - base;
+                    b.x = b.keyframes[base].x + (b.keyframes[next].x - b.keyframes[base].x) * ratio;
+                    b.y = b.keyframes[base].y + (b.keyframes[next].y - b.keyframes[base].y) * ratio;
+                } else {
+                    if (b.movement === 'sine') { b.x += b.speed; b.y = b.originY + Math.sin(age * 0.006) * 40; }
+                    else if (b.movement === 'topDown') b.y += b.speed;
+                    else if (b.movement === 'bottomUp') b.y -= b.speed;
+                    else if (b.movement === 'rightLeft') b.x -= b.speed;
+                    else b.x += b.speed;
+                }
+
+                ctx.fillStyle = colorTable[b.type] || '#FFFFFF';
+                ctx.fillRect(b.x, b.y, b.hitbox, b.hitbox);
+
+                // Collision detection
+                if (userSoul.x < b.x + b.hitbox && userSoul.x + 16 > b.x && userSoul.y < b.y + b.hitbox && userSoul.y + 16 > b.y) {
+                    if (b.type === 'blue' && isMoving) userSoul.hp -= b.damage * 0.1;
+                    else if (b.type === 'orange' && !isMoving) userSoul.hp -= b.damage * 0.1;
+                    else if (b.type === 'green') userSoul.hp = Math.min(100, userSoul.hp + 2);
+                    else if (b.type !== 'blue' && b.type !== 'orange') userSoul.hp -= b.damage * 0.1;
+                    
+                    userSoul.hp = Math.max(0, userSoul.hp);
+                    document.getElementById('hpFill').style.width = userSoul.hp + '%';
+                    document.getElementById('hpText').innerText = `HP: ${Math.round(userSoul.hp)} / 100`;
+                }
+            }
+        });
+
+        simAnimationId = requestAnimationFrame(simLoop);
+    }
+
+    function exportAttackFile() {
+        const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(document.getElementById('jsonPreview').innerText);
+        const link = document.createElement('a'); link.setAttribute('href', dataUri);
+        link.setAttribute('download', 'attack.att'); link.click();
+    }
+</script>
+</body>
+</html>
